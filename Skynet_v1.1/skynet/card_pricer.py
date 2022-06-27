@@ -1,10 +1,18 @@
+from calendar import c
 import requests
+import os
 import time
 import json
 # Results 6/26/2022: Consistently ~10s, no longer than 25s for dictionary construction.
 # Need to test csv or pandas construction to insert into Excel 
 # Then need to set up the new method for pricing... may as well make it for every card lol
 # Only like 600 pings of TCG's API in one go... we can do it!
+
+# Config stuff for TCG's API
+_PUBLIC_KEY = os.environ.get('TCG_PUBLIC_KEY')
+_PRIVATE_KEY = os.environ.get('TCG_PRIVATE_KEY')
+_BEARER_TOKEN = ""
+
 
 def jprint(obj):
     text = json.dumps(obj, sort_keys=True, indent=4)
@@ -59,6 +67,8 @@ def download_bulk_data():
 
     toc = time.perf_counter()
     print(f"Run time: {toc - tic:0.4f} s")
+
+    return cards, card_count
 
 def check_card(card):
     '''
@@ -292,10 +302,10 @@ def process_card(card):
     # The good news, however, is that every other attribute of the card that we care about is the same! So we just need to change the foil_type. 
     if foil_type == "Etched":
         try:
-            tcgplayer_etched_id = card["tcgplayer_etched_id"]
+            tcgplayer_etched_id = str(card["tcgplayer_etched_id"])
 
             try:
-                tcgplayer_id = card["tcgplayer_id"]
+                tcgplayer_id = str(card["tcgplayer_id"])
                 etched_dup = True
             except:
                 etched_dup = False
@@ -304,7 +314,7 @@ def process_card(card):
 
     # The final piece of the card object we need is its tcgplayer_id, which might not exist :)
     try:
-        tcgplayer_id = card["tcgplayer_id"]
+        tcgplayer_id = str(card["tcgplayer_id"])
     except:
         pass
 
@@ -317,5 +327,85 @@ def process_card(card):
     
     return tcgplayer_id, tcgplayer_etched_id, etched_dup, output
 
+def update_bearer():
+    
+    #Set up the headers and keys for the post request 
+    headers = {"User-Agent": "Nautilus", "From": "nautilus.application@gmail.com", "application": "x-www-form-urlencoded"}
+    data = {"grant_type": "client_credentials", "client_id": _PUBLIC_KEY, "client_secret": _PRIVATE_KEY}
 
-download_bulk_data()
+    #Request the token
+    response = requests.post("https://api.tcgplayer.com/token", headers=headers, data=data)
+    response_dict = json.loads(response.text)
+
+    #Save the token in the environment variables
+    BEARER_TOKEN = response_dict["access_token"]
+    expire_date = response_dict[".expires"]
+    print("Update successful.  Token will expire on " + str(expire_date))
+    return BEARER_TOKEN
+
+def get_tcg_pricing(cards, card_count):
+
+    # Update the token so that prices can be accessed
+    BEARER_TOKEN = update_bearer()
+
+    # We will create a dictionary of all prices
+    card_prices = {}
+
+    # We have to go 250 cards at a time
+    productId = ""
+    priceCounter = 0
+
+    # Run for X complete sets of 250, then run one set of X extra cards
+    num_even_cycles = card_count // 250
+    extra_cards = card_count % 250
+
+    tic = time.perf_counter()
+    # Loop over all cards in the dictionary
+    cycle_count = 0
+    total_count = 0
+    for card in cards.items():
+        
+        # Build the productId string
+        productId += card[1]["tcgplayer_id"] + ","
+        priceCounter += 1
+        total_count += 1
+
+        # Max 250 ids per ping
+        if (priceCounter == 250 or (priceCounter == extra_cards and cycle_count == num_even_cycles)):
+
+            url = "https://api.tcgplayer.com/pricing/product/" + str(productId)
+            headers = {"User-Agent": "Nautilus", "From": "nautilus.application@gmail.com", "accept": "application/json", "authorization": "bearer " + BEARER_TOKEN}
+
+            response = requests.request("GET", url, headers=headers)
+            response_dict = json.loads(response.text)
+            prices = response_dict["results"]
+
+            # Grab and save all the prices
+            for price in prices:
+                
+                # Saving all the data because we may as well
+                card_price = {"lowPrice": price["lowPrice"], "midPrice": price["midPrice"], "highPrice": price["highPrice"], "marketPrice": price["marketPrice"], "directLowPrice": price["directLowPrice"], "subTypeName": price["subTypeName"],"productId": price["productId"]}
+                
+                # Save the card in the dictionary with identifier ID (Foil), i.e. "123456 (Normal)" and "123456 (Foil)"
+                card_foiling = price["subTypeName"]
+                card_id = str(price["productId"])
+                system_id = card_id + " (" + card_foiling + ")"
+                card_prices.update({system_id: card_price})
+
+            # Reset for the next cycle
+            priceCounter = 0
+            productId = ""
+            cycle_count += 1
+    
+    toc = time.perf_counter()
+    print(total_count)
+    print(f"Run time: {toc - tic:0.4f} s")
+
+    return card_prices
+
+cards, card_count = download_bulk_data()
+prices = get_tcg_pricing(cards, card_count)
+    
+
+
+# jprint(download_bulk_data())
