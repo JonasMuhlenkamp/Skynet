@@ -1,3 +1,4 @@
+from win32con import MB_YESNO, IDYES
 import xlwings as xw
 import pandas
 from datetime import datetime
@@ -53,6 +54,17 @@ def build_master_name(input_card):
     
     return master_name 
 
+def sys_log(message, message_type, wb):
+
+    # Add a new row to the SysLog sheet
+    sheet = wb.sheets["SysLog"]
+    sheet.range("2:2").insert('down')
+
+    date = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+    sheet.range("a2").value = date
+    sheet.range("b2").value = message
+    sheet.range("c2").value = message_type
+
 def add_cards(sheet, wb):
     '''Adds cards from the entry field into a given sheet.
     sheet: the wb.sheets["name"] sheet that will be manipulated
@@ -64,6 +76,13 @@ def add_cards(sheet, wb):
     if int(error_check) > 0:
         win32api.MessageBox(wb.app.hwnd, "Errors have been detected in your input! Please check that the card is spelled correctly and that you have assembled a correct " + 
             "combination of set, style, and foiling.\n\nYou can use the Card Search function for additional help.", "Input Error Detected")
+        sys_log("General input error detected. Add operation canceled.", "General input error", wb)
+        return
+    
+    # Make sure the user is removing from the case they think they are removing from
+    confirm = win32api.MessageBox(wb.app.hwnd, "You are attempting to add cards to " + sheet.name + ". Is this the correct location?", "Confirm Location", MB_YESNO)
+    if confirm != IDYES:
+        sys_log("User canceled operation, wrong location.", "User aborted", wb)
         return
     
     # Acquire the input data
@@ -103,6 +122,11 @@ def add_cards(sheet, wb):
         # Issue message box error alerts for any input errors (hopefully none sneak through)
         for idx in range(len(error_list)):
             win32api.MessageBox(wb.app.hwnd, "Input error: " + error_list[idx] + ", row " + str(error_row_list[idx] + 9), "Failure - Input Error")
+            sys_log("Specific input error on cardname " + error_list[idx] + ".", "Specific input error", wb)
+
+        # Final status update
+        win32api.MessageBox(wb.app.hwnd, "Cards added to " + sheet.name + ".", "Cards added")
+        sys_log("Cards added to " + sheet.name + ".", "Success", wb)
 
 def remove_cards(sheet, wb):
     '''Removes the cards listed in the entry field from a sheet if they are found.
@@ -115,6 +139,13 @@ def remove_cards(sheet, wb):
     if int(error_check) > 0:
         win32api.MessageBox(wb.app.hwnd, "Errors have been detected in your input! Please check that the card is spelled correctly and that you have assembled a correct " + 
             "combination of set, style, and foiling.\n\nYou can use the Card Search function for additional help.", "Input Error Detected")
+        sys_log("General input error detected. Add operation canceled.", "General input error", wb)
+        return
+
+    # Make sure the user is removing from the case they think they are removing from
+    confirm = win32api.MessageBox(wb.app.hwnd, "You are attempting to remove cards from " + sheet.name + ". Is this the correct location?", "Confirm Location", MB_YESNO)
+    if confirm != IDYES:
+        sys_log("User canceled operation, wrong location.", "User aborted", wb)
         return
 
     # Save the input data
@@ -155,19 +186,34 @@ def remove_cards(sheet, wb):
                     current_row += 1
             if card_found == False:
                 failed_searches.append(element)
+        rows_to_remove.sort()
         
         # Run through the rows that need to be removed and remove them
         rows_removed = 0
         for row in rows_to_remove:
-            sheet.range(str(row - rows_removed) + ":" + str(row - rows_removed)).delete()
-            rows_removed += 1
+            if row - rows_removed > 3:
+                sheet.range(str(row - rows_removed) + ":" + str(row - rows_removed)).delete()
+                rows_removed += 1
 
         # Send out error alerts
         for idx in range(len(error_list)):
-            win32api.MessageBox(wb.app.hwnd, "Input error: " + error_list[idx] + ", row " + str(error_row_list[idx] + 9), "Failure - Input Error")    
+            win32api.MessageBox(wb.app.hwnd, "Input error: " + error_list[idx] + ", row " + str(error_row_list[idx] + 9), "Failure - Input Error")
+            sys_log("Specific input error on cardname " + error_list[idx] + ".", "Specific input error", wb)    
 
-        for remnant in failed_searches:
-            win32api.MessageBox(wb.app.hwnd, "Card not found error: " + remnant + " not found in " + sheet.name, "Failure - Card Not Found")
+        if len(failed_searches) <= 3:
+            for remnant in failed_searches:
+                win32api.MessageBox(wb.app.hwnd, "Card not found error: " + remnant + " not found in " + sheet.name, "Failure - Card Not Found")
+                sys_log("Card not found, cardname " + remnant + " not found in " + sheet.name + ".", "Card not found", wb)
+        else:
+            cards_not_found = ""
+            for remnant in failed_searches:
+                cards_not_found = cards_not_found + remnant + "\n"
+                sys_log("Card not found, cardname " + remnant + " not found in " + sheet.name + ".", "Card not found", wb)
+            win32api.MessageBox(wb.app.hwnd, "Several cards were not found in " + sheet.name + ". They are listed below:\n" + cards_not_found, "Failure - Cards Not Found")
+
+        # Final status update
+        win32api.MessageBox(wb.app.hwnd, "Cards removed from " + sheet.name + ".", "Cards removed")
+        sys_log("Cards removed from " + sheet.name + ".", "Success", wb)
 
 def track_prices(wb):
 
@@ -186,6 +232,9 @@ def track_prices(wb):
     new_prices = prices.range("k1:k" + str(prow)).copy()
     price_tracking.range("b1").paste(paste="values")
 
+    # Sys log
+    sys_log("Prices from " + datetime.strftime(prices.range("a1").value, "%m/%d/%Y") + " added to price history.", "Price tracking", wb)
+
     # Add the date so the system knows what it is looking at
     prices.range("a1").value = datetime.now().strftime("%m/%d/%Y")
 
@@ -203,8 +252,10 @@ def update_system():
     track_prices(wb)
 
     # Update cards and prices (takes about 3 minutes)
+    sys_log("System update initiated", "Update initiated", wb)
     cards, card_count = download_bulk_data()
     prices = get_tcg_pricing(cards, card_count)
+    sys_log("System data acquired", "Update progress", wb)
 
     # Create the dataframes 
     cards_df = pandas.DataFrame.from_dict(cards, orient="index")
@@ -220,9 +271,11 @@ def update_system():
 
     xw.Range("CurrentPrices").clear()
     xw.Range("CurrentPrices").value = prices_df
+    sys_log("Updated data transferred to system.", "Update progress", wb)
     
     # Update the spreadsheet most recent date
     wb.sheets["Pricing"].range("a1").value = datetime.now().strftime("%m/%d/%Y")
+    sys_log("System update complete.", "Update complete", wb)
 
 def eternal_add():
 
@@ -259,3 +312,8 @@ def new_set_remove():
     wb = xw.Book.caller()
     sheet = wb.sheets["New Set Case"]
     remove_cards(sheet, wb)
+
+# app = xw.apps.active
+# wb = app.books.active
+# # add_cards(wb.sheets["Eternal Case"], wb)
+# remove_cards(wb.sheets["Eternal Case"], wb)
