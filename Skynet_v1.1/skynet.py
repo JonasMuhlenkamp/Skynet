@@ -44,9 +44,14 @@ def build_master_name(input_card):
     if input_card[4] == "Error!": 
         return "Error"
 
-    master_name = input_card[0] + " (" + input_card[1] + ")"
+    master_name = input_card[0]
+    if master_name is None:
+        return "None"
+    setname = input_card[1]
     style = input_card[2]
     foil = input_card[3]
+    if setname is not None:
+        master_name = master_name + " (" + setname + ")"
     if style is not None:
         master_name = master_name + " (" + style + ")"
     if foil is not None:
@@ -93,6 +98,7 @@ def add_cards(sheet, wb):
         input_list = []
         error_list = []
         error_row_list = []
+        blank_count = 0
         count = 1
 
         # For each input
@@ -105,6 +111,9 @@ def add_cards(sheet, wb):
             if master_name == "Error":
                 error_list.append(element[0])
                 error_row_list.append(count)
+            elif master_name == "None":
+                blank_count += 1
+                continue
             else:
                 input_list.append([master_name])
             
@@ -113,7 +122,7 @@ def add_cards(sheet, wb):
         # Copy the formulas into the next row
         formulas = sheet.range("a2:x2").copy()
         next_sheet_row = last_row(sheet) + 1
-        end_input_row = next_sheet_row + len(input_range) - 1 - len(error_list)
+        end_input_row = next_sheet_row + len(input_range) - 1 - len(error_list) - blank_count
         sheet.range("a" + str(next_sheet_row) + ":x" + str(end_input_row)).paste(paste="formulas_and_number_formats")
         
         # Set the B column (names) to the input list
@@ -162,6 +171,8 @@ def remove_cards(sheet, wb):
             if master_name == "Error":
                 error_list.append(element[0])
                 error_row_list.append(count)
+            elif master_name == "None":
+                continue
             else:
                 input_list.append(master_name)
             count += 1
@@ -214,6 +225,7 @@ def remove_cards(sheet, wb):
         # Final status update
         win32api.MessageBox(wb.app.hwnd, "Cards removed from " + sheet.name + ".", "Cards removed")
         sys_log("Cards removed from " + sheet.name + ".", "Success", wb)
+    
 
 def track_prices(wb):
 

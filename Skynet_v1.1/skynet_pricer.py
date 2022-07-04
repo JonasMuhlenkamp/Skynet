@@ -406,12 +406,14 @@ def process_card(card):
     if card["lang"] == "ja" and (cnum.__contains__("\u2605") or card["set"] == "sta"):
         style_type = "JP Alt"
 
-    # Godzilla - IKO, #275, #370+
+    # Godzilla - IKO, #275, #370+, corrections to ikoria showcase cards because stupid
     elif card["set"] == "iko":
         try: 
             if (cnum == "275" or int(cnum) >= 371):
                 style_type = "Godzilla"
                 cardname = cardname + " (" + card["flavor_name"] + ")"
+            elif style_type == "Borderless" and (int(cnum) >= 279 or int(cnum) <= 313):
+                style_type = "Showcase"
         except:
             pass
 
@@ -442,7 +444,7 @@ def process_card(card):
         #Multiple colors -> multicolored :)
         if len(colors) > 1:
             color = "Multi"
-            color_sort = "7"
+            color_sort = "6"
         #Unfortunately, lands are colorless, so we need to separate them
         elif len(colors) == 0:
             typeline = ""
