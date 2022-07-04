@@ -93,7 +93,7 @@ def add_cards(sheet, wb):
     # Acquire the input data
     last_input_row = min(260, wb.sheets["Input"].range("B" + str(wb.sheets["Input"].cells.last_cell.row)).end('up').row)
     if last_input_row > 9:
-        input_range = wb.sheets["Input"].range("B10:F" + str(last_input_row)).value
+        input_range = wb.sheets["Input"].range("B10:F" + str(last_input_row)).options(ndim=2).value
 
         input_list = []
         error_list = []
@@ -104,6 +104,8 @@ def add_cards(sheet, wb):
         # For each input
         for element in input_range:
             
+            # print(element)
+
             # Make its master name
             master_name = build_master_name(element)
             
@@ -160,13 +162,14 @@ def remove_cards(sheet, wb):
     # Save the input data
     last_input_row = min(250, wb.sheets["Input"].range("B" + str(wb.sheets["Input"].cells.last_cell.row)).end('up').row)
     if last_input_row > 9:
-        input_range = wb.sheets["Input"].range("B10:F" + str(last_input_row)).value
+        input_range = wb.sheets["Input"].range("B10:F" + str(last_input_row)).options(ndim=2).value
 
         input_list = []
         error_list = []
         error_row_list = []
         count = 1
         for element in input_range:
+            # print(element)
             master_name = build_master_name(element)
             if master_name == "Error":
                 error_list.append(element[0])
@@ -327,5 +330,5 @@ def new_set_remove():
 
 # app = xw.apps.active
 # wb = app.books.active
-# # add_cards(wb.sheets["Eternal Case"], wb)
+# add_cards(wb.sheets["Standard Case"], wb)
 # remove_cards(wb.sheets["Eternal Case"], wb)
