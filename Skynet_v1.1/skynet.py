@@ -165,7 +165,7 @@ def remove_cards(sheet, wb):
         input_range = wb.sheets["Input"].range("B10:F" + str(last_input_row)).options(ndim=2).value
 
         input_list = []
-        error_list = []
+        error_list = [] 
         error_row_list = []
         count = 1
         for element in input_range:
