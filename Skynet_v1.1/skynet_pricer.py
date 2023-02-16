@@ -351,6 +351,8 @@ def process_card(card):
     # Showcase (alternate art + special frame style)
     # Retro ('97 frame on cards printed after the shift to the modern frame styles)
     # Phyrexian (the card is written in phyrexian)
+    # Concept (the card uses early concept art; specifically relevant for the Concept Praetors from ONE)
+    # Borderless Manga (this is dangerous precedent to set but it's only for the Manga Elesh Norn, MOM)
     # Godzilla (the card is part of the Godzilla series, to distinguish from normal borderless in IKO)
     # Dracula (the card is part of the Dracula series, to distinguish from normal borderless in VOW)
     # JP Alt (the card is in Japanese and has alternate art) (currently only handles WAR PWs and Archives)
@@ -426,6 +428,32 @@ def process_card(card):
         except:
             pass
 
+    # Handling Manga Elesh Norn so that it has a particular style
+    elif card["set"] == "one":
+        try: 
+            if (cnum == "415" or cnum == "419"):
+               style_type = "Manga Elesh"
+               cardname = cardname + " (" + cnum + ")"
+        except:
+            pass 
+    
+    # Pulling some styles and foils from promo types
+    try: 
+        for promo_type in card["promo_types"]:
+            # Concept Praetors (Style)
+            if (promo_type == "concept"):
+                style_type = "Concept"
+
+            # Step-and-Compleat (Foil)
+            if (promo_type == "stepandcompleat"):
+                foil_type = "Step-and-Compleat"
+            
+            # Oilslick (Foil)
+            if (promo_type == "oilslick"):
+                foil_type = "Oilslick"
+    except:
+        pass
+
     # One last check to fix some promo problems
     if (style_type == "" or style_type == "Extended") and ((card["promo"] == True and card["set_type"] != "promo") or (card["name"] == "Dragonsguard Elite" and cnum == "376")):
         style_type = "Promo"
@@ -488,8 +516,11 @@ def process_card(card):
     # Gilded (the cards have the gilded embossed foil treatment) (***CURRENTLY ONLY CAPABLE OF HANDLING SNC #362-405*** until Scryfall adds gildedness to the API)
     # Textured (the cards have the textured foil treatment) (***CURRENTLY ONLY CAPABLE OF HANDLING 2X2 #573-577*** until Scryfall adds texturedness to the API)
     # Neon Red, Green, Blue, Yellow (the stupid Hidetsugu, Devouring Chaos ultra rare variants)
-    # Galaxy (Unfinity?)
-    # Surge (Warhammer 40k?)
+    # Galaxy (Unfinity)
+    # Surge (Warhammer 40k)
+    # Oilslick (Phyrexia: All Will Be One)
+    # Step-and-Compleat (Phyrexia: All Will Be One)
+
 
     # *Note that cards can be etched and borderless (STA and some secret lair cards), and etched and retro (Modern Horizons 2 and some secret lair cards)
     for finish in card["finishes"]:
@@ -500,6 +531,7 @@ def process_card(card):
         elif finish == "textured":
             foil_type = "Textured"
 
+    # An increasing pile of one-off foil variants that Scryfall doesn't separate out as a different type of foil
     try:
         cnum = int(card["collector_number"])
         if card["set"] == "snc" and cnum >= 361 and cnum <= 405:
@@ -507,6 +539,7 @@ def process_card(card):
 
         if card["set"] == "2x2" and cnum >= 573 and cnum <= 577:
             foil_type = "Textured"
+
     except:
         pass
 
