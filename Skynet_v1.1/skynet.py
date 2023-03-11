@@ -292,7 +292,7 @@ def update_system():
     wb.sheets["Pricing"].range("a1").value = datetime.now().strftime("%m/%d/%Y")
     sys_log("System update complete.", "Update complete", wb)
 
-def eternal_add():  
+def eternal_add():
 
     wb = xw.Book.caller()
     sheet = wb.sheets["Eternal Case"]
