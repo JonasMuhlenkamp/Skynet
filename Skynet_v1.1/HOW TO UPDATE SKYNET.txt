@@ -1,0 +1,9 @@
+How to Update Skynet
+
+save any local changes by going to Github Desktop, clicking Commit (lower left corner) then Push (top ribbon, center)
+tell Jonas to make changes
+
+to get changes:
+open Github Desktop, go to Repository -> Repository Settings and change "FreedomHobby" in the url that you see to "JonasMuhlenkamp" (it should initially look like "https://github.com/FreedomHobby/Skynet.git" and become "https://github.com/JonasMuhlenkamp/Skynet.git")
+then click Fetch/Pull (same button, will need to click it twice)
+then change the Repository Settings url that you changed before back to "https://github.com/FreedomHobby/Skynet.git"
