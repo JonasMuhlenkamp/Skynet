@@ -451,6 +451,10 @@ def process_card(card):
             # Oilslick (Foil)
             if (promo_type == "oilslick"):
                 foil_type = "Oilslick"
+
+            # Serialized
+            if (promo_type == "serialized"):
+                foil_type = "Serialized"
     except:
         pass
 
@@ -520,6 +524,7 @@ def process_card(card):
     # Surge (Warhammer 40k)
     # Oilslick (Phyrexia: All Will Be One)
     # Step-and-Compleat (Phyrexia: All Will Be One)
+    # Serialized (many sets)
 
 
     # *Note that cards can be etched and borderless (STA and some secret lair cards), and etched and retro (Modern Horizons 2 and some secret lair cards)
