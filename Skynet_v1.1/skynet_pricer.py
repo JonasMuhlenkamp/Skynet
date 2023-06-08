@@ -388,7 +388,13 @@ def process_card(card):
 
     # Now we enter collector number based criteria
     # Alternate foils (this catches some oddballs, but I primarily need to distinguish them from their normal counterparts)
-    elif (cnum.__contains__("\u2605") and card["lang"] != "ja" and not card["type_line"].__contains__("Scheme")) and not card["set_name"].__contains__("Promo") and not card["set_type"].__contains__("promo") or (card["name"] == "Will Kenrith" and cnum == "255" and card["set"] == "bbd") or (card["name"] == "Rowan Kenrith" and cnum == "256" and card["set"] == "bbd") or (card["name"] == "Kaya, Ghost Assassin" and cnum == "222" and card["set"] == "cn2"):
+    elif ((cnum.__contains__("\u2605") and card["lang"] != "ja" and not card["type_line"].__contains__("Scheme")) 
+        and not card["set_name"].__contains__("Promo") 
+        and not card["set_type"].__contains__("promo") 
+        and not card["set"] == "40k"
+        or (card["name"] == "Will Kenrith" and cnum == "255" and card["set"] == "bbd") 
+        or (card["name"] == "Rowan Kenrith" and cnum == "256" and card["set"] == "bbd") 
+        or (card["name"] == "Kaya, Ghost Assassin" and cnum == "222" and card["set"] == "cn2")):
         style_type = "Alt Foil"
         
     # s is Prerelease
@@ -444,6 +450,10 @@ def process_card(card):
             if (promo_type == "concept"):
                 style_type = "Concept"
 
+            # Thick Commander Face Cards (Style)
+            if (promo_type == "thick"):
+                style_type = "Thick"
+
             # Step-and-Compleat (Foil)
             if (promo_type == "stepandcompleat"):
                 foil_type = "Step-and-Compleat"
@@ -455,6 +465,27 @@ def process_card(card):
             # Serialized
             if (promo_type == "serialized"):
                 foil_type = "Serialized"
+
+            # Halo (Foil)
+            if (promo_type == "halofoil"):
+                foil_type = "Halo"
+
+            # Textured (Foil)
+            if (promo_type == "textured"):
+                foil_type = "Textured"
+
+            # Surge (Foil)
+            if (promo_type == "surgefoil"):
+                foil_type = "Surge"
+
+            # Gilded (Foil)
+            if (promo_type == "gilded"):
+                foil_type = "Gilded"
+
+            # Galaxy (Foil)
+            if (promo_type == "galaxyfoil"):
+                foil_type = "Galaxy"
+
     except:
         pass
 
@@ -526,28 +557,12 @@ def process_card(card):
     # Step-and-Compleat (Phyrexia: All Will Be One)
     # Serialized (many sets)
 
-
     # *Note that cards can be etched and borderless (STA and some secret lair cards), and etched and retro (Modern Horizons 2 and some secret lair cards)
     for finish in card["finishes"]:
         if finish == "etched":
             foil_type = "Etched"
-        elif finish == "gilded":
-            foil_type = "Gilded"
-        elif finish == "textured":
-            foil_type = "Textured"
 
-    # An increasing pile of one-off foil variants that Scryfall doesn't separate out as a different type of foil
-    try:
-        cnum = int(card["collector_number"])
-        if card["set"] == "snc" and cnum >= 361 and cnum <= 405:
-            foil_type = "Gilded"
-
-        if card["set"] == "2x2" and cnum >= 573 and cnum <= 577:
-            foil_type = "Textured"
-
-    except:
-        pass
-
+    
     if card["name"] == "Hidetsugu, Devouring Chaos":
         if cnum == 429:
             foil_type = "Neon Red"
